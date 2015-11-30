@@ -1,0 +1,1 @@
+zencatalog run --createcatalog --forceindex
