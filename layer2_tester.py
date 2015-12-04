@@ -23,12 +23,13 @@ class Layer2Tester(object):
         model_catalog = IModelCatalogTool(dmd)
         failed_devices = []
         for device in get_all_devices(dmd):
-            layer2_query = Eq('deviceId', device.getPrimaryUrlPath())
+            device_uid = "/".join(device.getPrimaryPath())
+            layer2_query = Eq('deviceId', device_uid)
             layer2_brains = layer2_catalog.evalAdvancedQuery(layer2_query)
             layer2_macs = set([ brain.macaddress for brain in layer2_brains if brain.macaddress ])
             layer2_ifaces = set([ brain.interfaceId for brain in layer2_brains if brain.interfaceId ])
 
-            model_catalog_query = And(Eq('deviceId', "{0}".format(device.getPrimaryUrlPath())), Eq('meta_type', "IpInterface"))
+            model_catalog_query = And(Eq('deviceId', "{0}".format(device_uid)), Eq('meta_type', "IpInterface"))
             search_results = model_catalog.search(query=model_catalog_query)
             model_catalog_brains = [ brain for brain in search_results.results ]
             model_catalog_macs = set([ brain.macaddress for brain in model_catalog_brains if brain.macaddress ])

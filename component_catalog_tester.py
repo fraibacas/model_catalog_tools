@@ -21,7 +21,8 @@ class ComponentCatalogTester(object):
             for brain in device_catalog():
                 device_catalog_components[brain.meta_type].append(brain.getPath())
 
-            model_query = And(object_implements_query, Eq("deviceId", device.getPrimaryUrlPath()))
+            device_uid = "/".join(device.getPrimaryPath())
+            model_query = And(object_implements_query, Eq("deviceId", device_uid))
             model_query_results = model_catalog.search(query=model_query)
             model_catalog_components = defaultdict(list)
             for brain in model_query_results.results:
