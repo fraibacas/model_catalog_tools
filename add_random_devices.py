@@ -16,7 +16,7 @@ from utils import get_device_classes, generate_random_ip
 def assign_random_ips_to_device(device, n_ips=5):
     for i in range(n_ips):
         ip = generate_random_ip()
-        print "added ip {0} to {1}".format(ip, device)
+        #print "added ip {0} to {1}".format(ip, device)
         ts = int(time.time())
         iface_id = "testinterface_{0}_{1}".format(str(ts), i)
         device.os.addIpInterface(iface_id, True)
@@ -39,10 +39,12 @@ def add_devices(n_devices):
 
 
 def main():
+    start = time.time()
     n_devices = 10
     if len(sys.argv) > 1:
         n_devices = int(sys.argv[1])
     add_devices(n_devices)
+    print "Adding {0} devices took {1}".format(n_devices, time.time()-start)
 
 if __name__ == "__main__":
     main()
