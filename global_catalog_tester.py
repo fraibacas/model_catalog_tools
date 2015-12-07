@@ -122,26 +122,41 @@ class GlobalCatalogTester(object):
 
         return False
 
+    def validate_total_objects(self):
+        """
+        check that the number of objects and their paths are the same in both catalogs 
+        this can take some time
+        """
+        success = False
+        ts=time.time()
+        print "Searching for all objects in global catalog..."
+        global_catalog_results = ICatalogTool(dmd).search()
+        print "Search took: {0}\n".format(time.time() - ts)
+
+        print "Searching for all objects in model catalog..."
+        ts=time.time()
+        model_catalog_results = IModelCatalogTool(dmd).search()
+        print "Search took: {0}\n".format(time.time() - ts)
+        if model_catalog_results.total == global_catalog_results.total:
+            global_catalog_uids = set( [ brain.getPath() for brain in global_catalog_results.results ] )
+            model_catalog_uids = set( [ brain.getPath() for brain in model_catalog_results.results ] )
+            if len(global_catalog_uids - model_catalog_uids) == 0:
+                success = True
+                print "TEST PASSED: Both catalogs returned same results!!"
+            else:
+                global_not_model = global_catalog_uids - model_catalog_uids
+                model_not_global = model_catalog_uids - global_catalog_uids
+                print "TEST FAILED: Catalogs returned different objects"
+                if global_not_model:
+                    print "The following objects were found in global catalog and not in model catalog: {0}".format(global_not_model)
+                if model_not_global:
+                    print "The following objects were found in model catalog and not in global catalog: {0}".format(model_not_global)
+        else:
+            print "TEST FAILED: Catalogs returned different number of objects"
+        return success
+
     def run(self):
-        return self.test_device_classes_devices() and self.validate_mib_counts() and self.validate_templates()
-
-
-class ScenationPrepper(object):
-    """ Creates some random devices, systems, and location """
-
-    LOCATIONS = [ "Tokyo, Japan", "Jakarta, Indonesia", "Seoul, South Korea", "Delhi, India", \
-                  "Shanghai, China", "Manila, Philippines", "Karachi, Pakistan", "New York, USA", \
-                  "Sao Paulo, Brazil", "Mexico City, Mexico", "Cairo, Egypt", "Beijing, China", \
-                  "Osaka, Japan", "Mumbai (Bombay), India", "Guangzhou, China", "Moscow, Russia", \
-                  "Los Angeles, USA", "Calcutta, India", "Dhaka, Bangladesh", "Buenos Aires, Argentina", \
-                  "Istanbul, Turkey", "Rio de Janeiro, Brazil", "Shenzhen, China", "Lagos, Nigeria", "Paris, France", \
-                  "Nagoya, Japan", "Lima, Peru", "Chicago, USA", "Kinshasa, Congo", "Tianjin, China" ]
-
-    #SYSTEMS = [ "Mercury", "Venus", "Earth", "Mars", "Asteroids", "Jupiter", "Saturn", "Uranus", "Neptune", "ACAMAR", "ACHERNAR", "Achird", "ACRUX", "Acubens", "ADARA", "Adhafera", "Adhil", "AGENA", "Ain al Rami", "Ain", "Al Anz", "Al Kalb al Rai", "Al Minliar al Asad", "Al Minliar al Shuja", "Aladfar", "Alathfar", "Albaldah", "Albali", "ALBIREO", "Alchiba", "ALCOR", "ALCYONE", "ALDEBARAN", "ALDERAMIN", "Aldhibah", "Alfecca Meridiana", "Alfirk", "ALGENIB", "ALGIEBA", "ALGOL", "Algorab", "ALHENA", "ALIOTH", "ALKAID", "Alkalurops", "Alkes", "Alkurhah", "ALMAAK", "ALNAIR", "ALNATH", "ALNILAM", "ALNITAK", "Alniyat", "Alniyat", "ALPHARD", "ALPHEKKA", "ALPHERATZ", "Alrai", "Alrisha", "Alsafi", "Alsciaukat", "ALSHAIN", "Alshat", "Alsuhail", "ALTAIR", "Altarf", "Alterf", "Aludra", "Alula Australis", "Alula Borealis", "Alya", "Alzirr", "Ancha", "Angetenar", "ANKAA", "Anser", "ANTARES", "ARCTURUS", "Arkab Posterior", "Arkab Prior", "ARNEB", "Arrakis", "Ascella", "Asellus Australis", "Asellus Borealis", "Asellus Primus", "Asellus Secondus", "Asellus Tertius", "Asterope", "Atik", "Atlas", "Auva", "Avior", "Azelfafage", "Azha", "Azmidiske", "Baham", "Baten Kaitos", "Becrux", "Beid", "BELLATRIX", "BETELGEUSE", "Botein", "Brachium", "CANOPUS", "CAPELLA", "Caph", "CASTOR", "Cebalrai", "Celaeno", "Chara", "Chort", "COR CAROLI", "Cursa", "Dabih", "Deneb Algedi", "Deneb Dulfim", "Deneb el Okab", "Deneb el Okab", "Deneb Kaitos Shemali", "DENEB", "DENEBOLA", "Dheneb", "Diadem", "DIPHDA", "Dschubba", "Dsiban", "DUBHE", "Ed Asich", "Electra", "ELNATH", "ENIF", "ETAMIN", "FOMALHAUT", "Fornacis", "Fum al Samakah", "Furud", "Gacrux", "Gianfar", "Gienah Cygni", "Gienah Ghurab", "Gomeisa", "Gorgonea Quarta", "Gorgonea Secunda", "Gorgonea Tertia", "Graffias", "Grafias", "Grumium", "HADAR", "Haedi", "HAMAL", "Hassaleh", "Head of Hydrus", "Herschel's "Garnet Star"", "Heze", "Hoedus II", "Homam", "Hyadum I", "Hyadum II", "IZAR", "Jabbah", "Kaffaljidhma", "Kajam", "KAUS AUSTRALIS", "Kaus Borealis", "Kaus Meridionalis", "Keid", "Kitalpha", "KOCAB", "Kornephoros", "Kraz", "Kuma", "Lesath", "Maasym", "Maia", "Marfak", "Marfak", "Marfic", "Marfik", "MARKAB", "Matar", "Mebsuta", "MEGREZ", "Meissa", "Mekbuda", "Menkalinan", "MENKAR", "Menkar", "Menkent", "Menkib", "MERAK", "Merga", "Merope", "Mesarthim", "Metallah", "Miaplacidus", "Minkar", "MINTAKA", "MIRA", "MIRACH", "Miram", "MIRPHAK", "MIZAR", "Mufrid", "Muliphen", "Murzim", "Muscida", "Muscida", "Muscida", "Nair al Saif", "Naos", "Nash", "Nashira", "Nekkar", "NIHAL", "Nodus Secundus", "NUNKI", "Nusakan", "Peacock", "PHAD", "Phaet", "Pherkad Minor", "Pherkad", "Pleione", "Polaris Australis", "POLARIS", "POLLUX", "Porrima", "Praecipua", "Prima Giedi", "PROCYON", "Propus", "Propus", "Propus", "Rana", "Ras Elased Australis", "Ras Elased Borealis", "RASALGETHI", "RASALHAGUE", "Rastaban", "REGULUS", "Rigel Kentaurus", "RIGEL", "Rijl al Awwa", "Rotanev", "Ruchba", "Ruchbah", "Rukbat", "Sabik", "Sadalachbia", "SADALMELIK", "Sadalsuud", "Sadr", "SAIPH", "Salm", "Sargas", "Sarin", "Sceptrum", "SCHEAT", "Secunda Giedi", "Segin", "Seginus", "Sham", "Sharatan", "SHAULA", "SHEDIR", "Sheliak", "SIRIUS", "Situla", "Skat", "SPICA", "Sterope II", "Sualocin", "Subra", "Suhail al Muhlif", "Sulafat", "Syrma", "Talitha", "Tania Australis", "Tania Borealis", "TARAZED", "Taygeta", "Tegmen", "Tejat Posterior", "Terebellum", "Terebellum", "Terebellum", "Terebellum", "Thabit", "Theemim", "THUBAN", "Torcularis Septentrionalis", "Turais", "Tyl", "UNUKALHAI", "VEGA", "VINDEMIATRIX", "Wasat", "Wezen", "Wezn", "Yed Posterior", "Yed Prior", "Yildun", "Zaniah", "Zaurak", "Zavijah", "Zibal", "Zosma", "Zuben Elakrab", "Zuben Elakribi", "Zuben Elgenubi", "Zuben Elschemali" ]
-
-    def __init__(self):
-        pass
-
+        return self.validate_total_objects() and self.test_device_classes_devices() and self.validate_mib_counts() and self.validate_templates()
 
 
 def main():
