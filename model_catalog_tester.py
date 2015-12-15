@@ -5,7 +5,7 @@ dmd = ZenScriptBase(connect=True).dmd
 
 from collections import defaultdict
 from Products.AdvancedQuery import Eq, Or, Generic, And, In, MatchRegexp, MatchGlob
-from Products.Zuul.catalog.interfaces import IModelCatalogTool
+from Products.Zuul.catalog.interfaces import IModelCatalogTool, IPathReporter
 from zenoss.modelindex.searcher import SearchParams
 
 import time
@@ -114,6 +114,16 @@ class ModelCatalogHelper(object):
             results = [ brain.getPath() for brain in results ]
         return results
 
+    def get_object_paths(self, obj):
+        if not isinstance(obj, basestring):
+            obj = "/".join(obj.getPrimaryPath())
+        search_response = self.model_catalog.search(query=Eq("uid", obj))
+        if search_response.total == 1:
+            return next(search_response.results).path
+        else:
+            return [ "found more than 1 uid for {0}".format(obj) ]
+
+
 class ZodbHelper(object):
 
     def __init__(self, _dmd):
@@ -196,6 +206,23 @@ class BaseValidator(object):
                     for item, values in inconsistent.iteritems():
                         if values:
                             print "\t\t\t{0}: {1}".format(item, values)
+
+    def validate_paths(self, objects):
+        """ Given an object checks that the object paths are properly indexed """
+        success = True
+        paths_not_in_zodb = {}
+        paths_not_in_catalog = {}
+        for obj in objects:
+            zodb_paths = set( [ "/".join(path) for path in IPathReporter(obj).getPaths() ] )
+            indexed_paths = set(MODEL_CATALOG_HELPER.get_object_paths(obj))
+            ok, not_in_catalog, not_in_zodb =  self.validate_result_sets(zodb_paths, indexed_paths)
+            if not ok:
+                success = False
+                obj_path = ZODB_HELPER.ppath(obj)
+                paths_not_in_catalog[obj_path] = not_in_catalog
+                paths_not_in_zodb[obj_path] = not_in_zodb
+
+        self.print_results(success, paths_not_in_catalog, paths_not_in_zodb)
 
     def run(self):
         raise NotImplementedError
@@ -364,22 +391,30 @@ class DeviceValidator(BaseValidator):
 
         self.print_results(success, ips_not_in_catalog, ips_not_in_zodb)
 
+    def validate_device_paths(self):
+        print "\nValidating Devices' paths..."
+        return self.validate_paths(self.devices.values())
+
     def run(self):
         self.validate_devices_components()
         self.validate_ipInterfaces()
         self.validate_ipAddresses()
+        self.validate_device_paths()
 
 
 class NetworkValidator(BaseValidator):
 
     def __init__(self):
-        self.networks = dmd.Networks.getSubNetworks()
-        self.networks.extend(dmd.IPv6Networks.getSubNetworks())
+        networks = dmd.Networks.getSubNetworks()
+        networks.extend(dmd.IPv6Networks.getSubNetworks())
+
+        self.networks = { ZODB_HELPER.ppath(net):net for net in networks }
+        self.ips = { ZODB_HELPER.ppath(net):net.ipaddresses() for net in networks }
 
     def validate_networks(self):
         """ All networks should be indexed in solr """
         print "\nValidating Networks..."
-        nets_paths = set([ ZODB_HELPER.ppath(net) for net in self.networks ])
+        nets_paths = set(self.networks.keys())
         indexed_nets_paths = set(MODEL_CATALOG_HELPER.get_networks())
         success, not_in_catalog, not_in_zodb =  self.validate_result_sets(nets_paths, indexed_nets_paths)
         self.print_results(success, not_in_catalog, not_in_zodb)
@@ -392,8 +427,8 @@ class NetworkValidator(BaseValidator):
         ips_not_in_zodb = []
         inconsistent_ips = []
 
-        for net in self.networks:
-            ips = { ZODB_HELPER.ppath(ip): ip for ip in net.ipaddresses() }
+        for net in self.networks.keys():
+            ips = { ZODB_HELPER.ppath(ip): ip for ip in self.ips[net] }
             indexed_ips = { brain.getPath(): brain for brain in MODEL_CATALOG_HELPER.get_network_ips(net, return_paths=False) }
             ok, not_in_catalog, not_in_zodb =  self.validate_result_sets(set(ips.keys()), set(indexed_ips.keys()))
 
@@ -416,9 +451,17 @@ class NetworkValidator(BaseValidator):
 
         return success
 
+    def validate_ipaddresses_paths(self):
+        print "\nValidating IpAddresses' paths..."
+        all_ips = []
+        for ip in self.ips.values():
+            all_ips.extend(ip)
+        return self.validate_paths(all_ips)
+
     def run(self):
         self.validate_networks()
         self.validate_ipAddresses()
+        self.validate_ipaddresses_paths()
 
 
 class ModelCatalogValidator(object):
