@@ -10,6 +10,15 @@ from zenoss.modelindex.searcher import SearchParams
 
 import time
 
+class BColors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 class ModelCatalogHelper(object):
 
@@ -157,17 +166,18 @@ class BaseValidator(object):
     def print_results(self, success, not_in_catalog, not_in_zodb, inconsistent=None):
         """ """
         if success:
-            print "\tSTEP PASSED: Model Catalog is consistent!"
+            print "\t{0}STEP PASSED{1}: Model Catalog is consistent!".format(BColors.OKGREEN, BColors.ENDC)
         else:
-            print "\tSTEP FAILED: Model Catalog is not consistent."
+            print "\t{0}STEP FAILED{1}: Model Catalog is not consistent.".format(BColors.FAIL, BColors.ENDC)
             if not_in_catalog:
                 print "\t\t Items not found in catalog:"
                 if isinstance(not_in_catalog, list):
                     for item in not_in_catalog:
                         print "\t\t\t{0}".format(item)
                 elif isinstance(not_in_catalog, dict):
-                    for item, values in not_in_zodb.iteritems():
-                        print "\t\t\t{0}: {1}".format(item, values)
+                    for item, values in not_in_catalog.iteritems():
+                        if values:
+                            print "\t\t\t{0}: {1}".format(item, values)
             if not_in_zodb:
                 print "\t\t Items not found in zodb:"
                 if isinstance(not_in_catalog, list) or isinstance(not_in_catalog, set):
@@ -175,7 +185,8 @@ class BaseValidator(object):
                         print "\t\t\t{0}".format(item)
                 elif isinstance(not_in_catalog, dict):
                     for item, values in not_in_zodb.iteritems():
-                        print "\t\t\t{0}: {1}".format(item, values)
+                        if values:
+                            print "\t\t\t{0}: {1}".format(item, values)
             if inconsistent:
                 print "\t\t Items found in catalog with inconsistent information:"
                 if isinstance(not_in_catalog, list):
@@ -183,7 +194,8 @@ class BaseValidator(object):
                         print "\t\t\t{0}".format(item)
                 elif isinstance(not_in_catalog, dict):
                     for item, values in inconsistent.iteritems():
-                        print "\t\t\t{0}: {1}".format(item, values)
+                        if values:
+                            print "\t\t\t{0}: {1}".format(item, values)
 
     def run(self):
         raise NotImplementedError
@@ -397,7 +409,6 @@ class NetworkValidator(BaseValidator):
                 device_path = ZODB_HELPER.ppath(ip.device()) if ip.device() else None
                 interface_path = ZODB_HELPER.ppath(ip.interface()) if ip.interface() else None
                 if device_path!=indexed_ip.deviceId or interface_path!=indexed_ip.interfaceId:
-                    import pdb; pdb.set_trace()
                     inconsistent_ips.append(ip_path)
 
         success = len(ips_not_in_catalog) == len(ips_not_in_zodb) == len(inconsistent_ips) == 0
