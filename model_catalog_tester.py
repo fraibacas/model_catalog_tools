@@ -279,16 +279,19 @@ class DeviceValidator(BaseValidator):
         self.devices = {}
         self.ipinterfaces = defaultdict(list)
         self.ipaddresses = defaultdict(list)
+        self.components = defaultdict(list)
         for device in ZODB_HELPER.get_all_devices():
             path = ZODB_HELPER.ppath(device)
             self.devices[path] = device
             self.ipinterfaces[path] = device.os.interfaces()
             for iface in self.ipinterfaces[path]:
                 self.ipaddresses[path].extend(iface.ipaddresses())
+            self.components[path].extend( list(device.getDeviceComponentsNoIndexGen()) )
 
     def validate_device_components(self, device):
         """ """
-        components = set(ZODB_HELPER.get_device_components_path(device))
+        device_path = ZODB_HELPER.ppath(device)
+        components = set( [ ZODB_HELPER.ppath(component) for component in self.components[device_path] ] )
         indexed_components = set(MODEL_CATALOG_HELPER.get_device_components(ZODB_HELPER.ppath(device)))
         success, not_in_catalog, not_in_zodb =  self.validate_result_sets(components, indexed_components)
 
@@ -313,6 +316,14 @@ class DeviceValidator(BaseValidator):
                     components_not_in_zodb[device_path] = not_in_zodb
 
         self.print_results(success, components_not_in_catalog, components_not_in_zodb)
+
+    def validate_device_components_paths(self):
+
+        print "\nValidating Devices' Components' paths ..."
+        all_components = []
+        for comps in self.components.values():
+            all_components.extend(comps)
+        return self.validate_paths(comps)
 
     def validate_device_ipInterfaces(self, device):
 
@@ -397,6 +408,7 @@ class DeviceValidator(BaseValidator):
 
     def run(self):
         self.validate_devices_components()
+        self.validate_device_components_paths()
         self.validate_ipInterfaces()
         self.validate_ipAddresses()
         self.validate_device_paths()
