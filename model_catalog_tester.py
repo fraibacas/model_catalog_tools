@@ -323,7 +323,7 @@ class DeviceValidator(BaseValidator):
         all_components = []
         for comps in self.components.values():
             all_components.extend(comps)
-        return self.validate_paths(comps)
+        return self.validate_paths(all_components)
 
     def validate_device_ipInterfaces(self, device):
 
