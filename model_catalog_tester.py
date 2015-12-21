@@ -92,6 +92,18 @@ class ModelCatalogHelper(object):
             results = [ brain.getPath() for brain in results ]
         return results
 
+    def get_device_processes(self, device, return_paths=True):
+        if not isinstance(device, basestring):
+            device = "/".join(device.getPrimaryPath())
+        query = []
+        query.append(Eq("objectImplements", "Products.ZenModel.OSProcess.OSProcess"))
+        query.append(MatchGlob("path", "{0}*".format(device)))
+        search_response = self.model_catalog.search(query=And(*query))
+        results = search_response.results
+        if return_paths:
+            results = [ brain.getPath() for brain in results ]
+        return results        
+
     def get_doc_by_uid(self, uid):
         if not isinstance(uid, basestring):
             uid = "/".join(uid.getPrimaryPath())
@@ -402,6 +414,31 @@ class DeviceValidator(BaseValidator):
 
         self.print_results(success, ips_not_in_catalog, ips_not_in_zodb)
 
+
+    def validate_ip_services(self):
+        """ """
+        print "\nValidating Devices' Ip Services ...    NOT IMPLEMENTED"
+
+    def validate_os_processes(self):
+        """ """
+        print "\nValidating Devices' OsProcesses ..."
+        success = True
+        processes_not_in_catalog = {}
+        processes_not_in_zodb = {}
+        for device_path, device in self.devices.iteritems():
+            processes_paths = set([ ZODB_HELPER.ppath(process) for process in device.os.processes() ])
+            indexed_processes_paths = set(MODEL_CATALOG_HELPER.get_device_processes(device))
+            ok, not_in_catalog, not_in_zodb = self.validate_result_sets(processes_paths, indexed_processes_paths)
+            if not ok:
+                success = False
+                if not_in_catalog:
+                    processes_not_in_catalog[device_path] = not_in_catalog
+                if not_in_zodb:
+                    processes_not_in_zodb[device_path] = not_in_zodb
+
+        self.print_results(success, processes_not_in_catalog, processes_not_in_zodb)
+
+
     def validate_device_paths(self):
         print "\nValidating Devices' paths..."
         return self.validate_paths(self.devices.values())
@@ -412,6 +449,8 @@ class DeviceValidator(BaseValidator):
         self.validate_ipInterfaces()
         self.validate_ipAddresses()
         self.validate_device_paths()
+        self.validate_os_processes()
+        self.validate_ip_services()
 
 
 class NetworkValidator(BaseValidator):
