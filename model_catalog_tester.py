@@ -35,7 +35,7 @@ class ModelCatalogHelper(object):
 
     def get_devices_path_for_device_class(self, dc_path, return_paths=True):
         query =  [ Eq("objectImplements", "Products.ZenModel.Device.Device") ]
-        query.append(Eq("path", "{0}/devices/*".format(dc_path)))
+        query.append(MatchGlob("path", "{0}/devices/*".format(dc_path)))
         search_response = self.model_catalog.search(query=And(*query))
         results = search_response.results
         if return_paths:
