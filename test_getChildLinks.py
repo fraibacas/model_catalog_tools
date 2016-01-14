@@ -90,7 +90,6 @@ def test_getChildLinks(devices):
     return found
 
 
-
 def main():
     links = [ ("10.10.10.1", "location1"), ("10.10.10.35", "location2") ]
     print "Setting up test"
