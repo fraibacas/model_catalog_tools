@@ -6,16 +6,25 @@ from collections import defaultdict
 from Products.AdvancedQuery import Eq, Or, Generic, And, In, MatchRegexp
 from Products.Zuul.catalog.interfaces import IModelCatalogTool
 
-from utils import get_all_devices
-
 class ComponentCatalogTester(object):
+
+    def _get_all_devices(self):
+        """ """
+        model_catalog = IModelCatalogTool(dmd)
+        query = {}
+        query['objectImplements'] = "Products.ZenModel.Device.Device"
+        search_results = model_catalog.search(query=query)
+        devices = []
+        for dev_brain in search_results.results:
+            devices.append(dev_brain.getObject())
+        return devices
 
     def validate_device_components(self):
         """ search for devices components with both old a new catalogs """
         model_catalog = IModelCatalogTool(dmd)
         failed_devices = []
         object_implements_query = Eq('objectImplements', "Products.ZenModel.DeviceComponent.DeviceComponent")
-        for device in get_all_devices(dmd):
+        for device in self._get_all_devices():
             device_catalog = device.componentSearch
             device_catalog_components = defaultdict(list)
             for brain in device_catalog():
