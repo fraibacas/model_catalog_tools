@@ -518,9 +518,6 @@ class NetworkValidator(BaseValidator):
 class ModelCatalogValidator(object):
 
     def __init__(self):
-        self.all_devices = dmd.Devices.getSubDevices_recursive()
-
-    def __init__(self):
         self.validators = []
         self.validators.append(DeviceClassValidator())
         self.validators.append(DeviceValidator())
