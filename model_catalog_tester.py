@@ -127,13 +127,17 @@ class ModelCatalogHelper(object):
         return results
 
     def get_object_paths(self, obj):
+        paths = []
         if not isinstance(obj, basestring):
             obj = "/".join(obj.getPrimaryPath())
         search_response = self.model_catalog.search(query=Eq("uid", obj))
         if search_response.total == 1:
-            return next(search_response.results).path
+            brain = next(search_response.results)
+            if brain.path is not None:
+                paths = brain.path
         else:
-            return [ "found more than 1 uid for {0}".format(obj) ]
+            paths = [ "found more than 1 uid for {0}".format(obj) ]
+        return paths
 
 
 class ZodbHelper(object):
