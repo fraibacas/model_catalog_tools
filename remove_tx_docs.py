@@ -9,15 +9,12 @@ from zenoss.modelindex.searcher import SearchParams
 
 def remove_temp_transaction_docs():
     config = getGlobalConfiguration()
-    solr_servers = config.get('solr-servers', 'localhost:8984')
-    indexer = zope.component.createObject('ModelIndexer', solr_servers)
+    solr_servers = config.get('solr-servers', '10.87.128.105:8984')
+    uid = "*{0}*".format(TX_SEPARATOR)
+    query = {"uid" : uid}
+    search_params=SearchParams(query)
     searcher = zope.component.createObject('ModelSearcher', solr_servers)
-
-    query = {"uid" : "*{0}*".format(TX_SEPARATOR)}
-    results = searcher.search(SearchParams(query))
-    uids = [ r.uid for r in results.results ]
-    indexer._unindex_uids(uids)
-
+    searcher.unindex_search(search_params)
 
 if __name__ == "__main__":
     remove_temp_transaction_docs()
