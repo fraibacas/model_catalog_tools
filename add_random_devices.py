@@ -12,8 +12,8 @@ import time
 from Products.ZenModel.ZDeviceLoader import JobDeviceLoader
 from utils import get_device_classes, generate_random_ip
 
-
-def assign_random_ips_to_device(device, n_ips=5):
+N_IPS=500
+def assign_random_ips_to_device(device, n_ips=N_IPS):
     for i in range(n_ips):
         ip = generate_random_ip()
         #print "added ip {0} to {1}".format(ip, device)
