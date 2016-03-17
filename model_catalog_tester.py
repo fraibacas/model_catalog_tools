@@ -6,7 +6,7 @@ dmd = ZenScriptBase(connect=True).dmd
 from collections import defaultdict
 from Products.AdvancedQuery import Eq, Or, Generic, And, In, MatchRegexp, MatchGlob
 from Products.Zuul.catalog.interfaces import IModelCatalogTool, IPathReporter
-from zenoss.modelindex.searcher import SearchParams
+from zenoss.modelindex.model_index import SearchParams
 
 import time
 
